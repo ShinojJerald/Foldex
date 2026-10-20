@@ -1,0 +1,21 @@
+name: Format request
+description: Ask for a file format Foldex can't convert yet.
+title: "Format request: "
+labels: [format request]
+body:
+  - type: input
+    id: extension
+    attributes:
+      label: File extension
+      placeholder: ".ncm"
+    validations:
+      required: true
+  - type: textarea
+    id: target
+    attributes:
+      label: What should it convert to or from?
+  - type: textarea
+    id: where
+    attributes:
+      label: Where do these files come from?
+      description: The app or device that makes them. Please don't attach private files.

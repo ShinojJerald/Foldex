@@ -1,0 +1,470 @@
+<!-- PDF workspace: toolbar, page thumbnails (drag to reorder), preview with marks, and a side panel for the selected mark
+     and the options applied when saving. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Filee.App.ViewModels.Pages"
+             xmlns:pdf="using:Filee.Engines.Pdf"
+             x:Class="Filee.App.Views.Pages.PdfEditorPage"
+             x:DataType="vm:PdfEditorPageViewModel"
+             Focusable="True">
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}" />
+    <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseCommand}" />
+    <KeyBinding Gesture="Ctrl+F4" Command="{Binding CloseCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+R" Command="{Binding RotateRightCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+R" Command="{Binding RotateLeftCommand}" />
+    <KeyBinding Gesture="Ctrl+D" Command="{Binding DuplicatePagesCommand}" />
+    <KeyBinding Gesture="Ctrl+A" Command="{Binding SelectAllCommand}" />
+    <KeyBinding Gesture="Ctrl+OemPlus" Command="{Binding ZoomInCommand}" />
+    <KeyBinding Gesture="Ctrl+Add" Command="{Binding ZoomInCommand}" />
+    <KeyBinding Gesture="Ctrl+OemMinus" Command="{Binding ZoomOutCommand}" />
+    <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding ZoomOutCommand}" />
+    <KeyBinding Gesture="Ctrl+D0" Command="{Binding FitPageCommand}" />
+    <KeyBinding Gesture="PageDown" Command="{Binding NextPageCommand}" />
+    <KeyBinding Gesture="PageUp" Command="{Binding PreviousPageCommand}" />
+    <KeyBinding Gesture="Alt+Up" Command="{Binding MoveUpCommand}" />
+    <KeyBinding Gesture="Alt+Down" Command="{Binding MoveDownCommand}" />
+  </UserControl.KeyBindings>
+
+  <UserControl.Styles>
+    <Style Selector="Button.tb, ToggleButton.tb">
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="MinWidth" Value="34" />
+    </Style>
+    <Style Selector="Button.tb PathIcon">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+    </Style>
+    <Style Selector="Rectangle.sep">
+      <Setter Property="Width" Value="1" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="Margin" Value="6,0" />
+      <Setter Property="Fill" Value="{DynamicResource SubtleBorderBrush}" />
+    </Style>
+    <Style Selector="ListBox.tools">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.tools ListBoxItem">
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="Margin" Value="1,0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    </Style>
+    <Style Selector="ListBox.tools ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    </Style>
+    <Style Selector="ListBox.thumbs ListBoxItem" x:DataType="vm:PdfPageItem">
+      <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    </Style>
+    <Style Selector="ListBox.thumbs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    </Style>
+    <Style Selector="Border.swatch">
+      <Setter Property="Width" Value="20" />
+      <Setter Property="Height" Value="20" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
+    </Style>
+    <Style Selector="Border#EmptyDrop.over">
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid>
+    <!-- ───────── Empty state: open a PDF ───────── -->
+    <Grid IsVisible="{Binding !HasDocument}" RowDefinitions="Auto,*">
+      <StackPanel Spacing="4" Margin="0,0,0,18">
+        <TextBlock Classes="h1" Text="{DynamicResource pdf.title}" />
+        <TextBlock Classes="muted" Text="{DynamicResource pdf.subtitle}" TextWrapping="Wrap" />
+      </StackPanel>
+      <StackPanel Grid.Row="1" Spacing="18" MaxWidth="760" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+        <Border x:Name="EmptyDrop" DragDrop.AllowDrop="True" MinHeight="230" Padding="24"
+                Background="{DynamicResource AccentFaintBrush}" BorderBrush="{DynamicResource AccentSoftBrush}"
+                BorderThickness="2" CornerRadius="{DynamicResource SoftRadiusLarge}">
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+            <PathIcon Width="40" Height="40" Data="{StaticResource Icon.File}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" HorizontalAlignment="Center" Text="{DynamicResource pdf.drop_title}" />
+            <TextBlock Classes="muted" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                       Text="{DynamicResource pdf.drop_hint}" />
+            <Button Classes="accent" HorizontalAlignment="Center" Command="{Binding OpenCommand}"
+                    AutomationProperties.Name="{DynamicResource pdf.open}" ToolTip.Tip="Ctrl+O">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Width="14" Height="14" Data="{StaticResource Icon.Folder}" />
+                <TextBlock Text="{DynamicResource pdf.open}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Border>
+        <StackPanel Spacing="8" IsVisible="{Binding HasRecentDocuments}">
+          <TextBlock Classes="h2" Text="{DynamicResource pdf.recent}" />
+          <ItemsControl ItemsSource="{Binding RecentDocuments}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <Button Classes="ghost" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="0,1"
+                        Command="{Binding $parent[UserControl].((vm:PdfEditorPageViewModel)DataContext).OpenRecentCommand}"
+                        CommandParameter="{Binding}" ToolTip.Tip="{Binding}">
+                  <StackPanel Orientation="Horizontal" Spacing="10">
+                    <PathIcon Width="14" Height="14" Data="{StaticResource Icon.File}" />
+                    <TextBlock Text="{Binding}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+
+    <!-- ───────── Workspace ───────── -->
+    <DockPanel IsVisible="{Binding HasDocument}">
+      <!-- Title and toolbar -->
+      <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,10">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <ProgressBar IsIndeterminate="True" Width="90" VerticalAlignment="Center" IsVisible="{Binding IsBusy}" />
+            <Button Classes="accent" Command="{Binding SaveCommand}" ToolTip.Tip="{DynamicResource pdf.tip.save}"
+                    AutomationProperties.Name="{DynamicResource pdf.save}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Width="14" Height="14" Data="{StaticResource Icon.Save}" />
+                <TextBlock Text="{DynamicResource pdf.save}" />
+              </StackPanel>
+            </Button>
+            <Button x:Name="CloseDocument" Command="{Binding CloseCommand}" ToolTip.Tip="{DynamicResource pdf.tip.close}"
+                    AutomationProperties.Name="{DynamicResource pdf.close}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
+                <TextBlock Text="{DynamicResource pdf.close}" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <!-- Long file names are trimmed so Save and Close always stay in reach -->
+          <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center" Margin="0,0,12,0">
+            <TextBlock Classes="h1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding DocumentPath}" HorizontalAlignment="Left" />
+            <Border Grid.Column="1" IsVisible="{Binding IsDirty}" VerticalAlignment="Center" CornerRadius="{DynamicResource SoftRadiusSmall}" Padding="8,2"
+                    Margin="10,0,0,0" Background="{DynamicResource AccentSoftBrush}">
+              <TextBlock Classes="caption" Text="{DynamicResource pdf.unsaved}" />
+            </Border>
+          </Grid>
+        </DockPanel>
+        <Border Classes="card" Padding="6,4">
+          <WrapPanel Orientation="Horizontal">
+            <Button Classes="tb" Command="{Binding OpenCommand}" ToolTip.Tip="{DynamicResource pdf.tip.open}" AutomationProperties.Name="{DynamicResource pdf.open}">
+              <PathIcon Data="{StaticResource Icon.Folder}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding SaveCommand}" ToolTip.Tip="{DynamicResource pdf.tip.save}" AutomationProperties.Name="{DynamicResource pdf.save}">
+              <PathIcon Data="{StaticResource Icon.Save}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding SaveAsCommand}" ToolTip.Tip="{DynamicResource pdf.tip.save_as}" Content="{DynamicResource pdf.save_as}" />
+            <Rectangle Classes="sep" />
+            <Button Classes="tb" Command="{Binding UndoCommand}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="{DynamicResource pdf.tip.undo}" AutomationProperties.Name="{DynamicResource pdf.undo}">
+              <PathIcon Data="{StaticResource Icon.Undo}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding RedoCommand}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="{DynamicResource pdf.tip.redo}" AutomationProperties.Name="{DynamicResource pdf.redo}">
+              <PathIcon Data="{StaticResource Icon.Redo}" />
+            </Button>
+            <Rectangle Classes="sep" />
+            <Button Classes="tb" Command="{Binding RotateLeftCommand}" ToolTip.Tip="{DynamicResource pdf.tip.rotate_left}" AutomationProperties.Name="{DynamicResource pdf.rotate_left}">
+              <PathIcon Data="{StaticResource Icon.RotateRight}" RenderTransform="scaleX(-1)" />
+            </Button>
+            <Button Classes="tb" Command="{Binding RotateRightCommand}" ToolTip.Tip="{DynamicResource pdf.tip.rotate_right}" AutomationProperties.Name="{DynamicResource pdf.rotate_right}">
+              <PathIcon Data="{StaticResource Icon.RotateRight}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding DuplicatePagesCommand}" ToolTip.Tip="{DynamicResource pdf.tip.duplicate}" AutomationProperties.Name="{DynamicResource pdf.duplicate}">
+              <PathIcon Data="{StaticResource Icon.Copy}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding DeletePagesCommand}" ToolTip.Tip="{DynamicResource pdf.tip.delete}" AutomationProperties.Name="{DynamicResource pdf.delete}">
+              <PathIcon Data="{StaticResource Icon.Delete}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding InsertFromFileCommand}" ToolTip.Tip="{DynamicResource pdf.tip.insert}" AutomationProperties.Name="{DynamicResource pdf.insert}">
+              <PathIcon Data="{StaticResource Icon.Plus}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding ExtractPagesCommand}" ToolTip.Tip="{DynamicResource pdf.tip.extract}" AutomationProperties.Name="{DynamicResource pdf.extract}">
+              <PathIcon Data="{StaticResource Icon.Upload}" />
+            </Button>
+            <Rectangle Classes="sep" />
+            <ListBox Classes="tools" ItemsSource="{Binding Tools}" SelectedItem="{Binding SelectedTool}" SelectionMode="AlwaysSelected"
+                     AutomationProperties.Name="{DynamicResource pdf.tools}">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PdfToolOption">
+                  <PathIcon Width="16" Height="16" Data="{Binding Icon}" ToolTip.Tip="{Binding Tip}" AutomationProperties.Name="{Binding Tip}" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Rectangle Classes="sep" />
+            <ItemsControl ItemsSource="{Binding Swatches}" VerticalAlignment="Center">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="x:String">
+                  <Button Classes="tb" Padding="3" MinWidth="0" ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}"
+                          Command="{Binding $parent[UserControl].((vm:PdfEditorPageViewModel)DataContext).SetColorCommand}" CommandParameter="{Binding}">
+                    <Border Classes="swatch" Background="{Binding}" />
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Rectangle Classes="sep" />
+            <Button Classes="tb" Command="{Binding ZoomOutCommand}" ToolTip.Tip="{DynamicResource pdf.tip.zoom_out}" AutomationProperties.Name="{DynamicResource pdf.zoom_out}">
+              <PathIcon Data="{StaticResource Icon.Minus}" />
+            </Button>
+            <TextBlock Text="{Binding ZoomText}" VerticalAlignment="Center" MinWidth="44" TextAlignment="Center" />
+            <Button Classes="tb" Command="{Binding ZoomInCommand}" ToolTip.Tip="{DynamicResource pdf.tip.zoom_in}" AutomationProperties.Name="{DynamicResource pdf.zoom_in}">
+              <PathIcon Data="{StaticResource Icon.Plus}" />
+            </Button>
+            <Button Classes="tb" Command="{Binding FitWidthCommand}" Content="{DynamicResource pdf.fit_width}" ToolTip.Tip="{DynamicResource pdf.fit_width}" />
+            <Button Classes="tb" Command="{Binding FitPageCommand}" ToolTip.Tip="{DynamicResource pdf.tip.fit_page}" AutomationProperties.Name="{DynamicResource pdf.fit_page}">
+              <PathIcon Data="{StaticResource Icon.Fit}" />
+            </Button>
+          </WrapPanel>
+        </Border>
+
+        <!-- Message bar: saved / errors -->
+        <Border IsVisible="{Binding HasMessage}" CornerRadius="{DynamicResource SoftRadiusSmall}" Padding="12,8"
+                Background="{DynamicResource AccentFaintBrush}" BorderThickness="1"
+                BorderBrush="{DynamicResource AccentSoftBrush}" Classes.error="{Binding MessageIsError}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Classes="tb" Command="{Binding DismissMessageCommand}" AutomationProperties.Name="{DynamicResource pdf.dismiss}">
+              <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
+            </Button>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" IsVisible="{Binding !MessageIsError}">
+              <Button Classes="tb" Content="{DynamicResource pdf.open_file}" Command="{Binding OpenOutputCommand}" IsVisible="{Binding LastOutput, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              <Button Classes="tb" Content="{DynamicResource home.open_folder}" Command="{Binding RevealOutputCommand}" IsVisible="{Binding LastOutput, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding MessageIsError}" />
+              <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding !MessageIsError}" />
+              <SelectableTextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- Status bar -->
+      <DockPanel DockPanel.Dock="Bottom" Margin="2,8,2,0">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="4">
+          <Button Classes="tb" Command="{Binding PreviousPageCommand}" ToolTip.Tip="PageUp" AutomationProperties.Name="{DynamicResource pdf.previous}">
+            <PathIcon Data="{StaticResource Icon.ChevronLeft}" />
+          </Button>
+          <Button Classes="tb" Command="{Binding NextPageCommand}" ToolTip.Tip="PageDown" AutomationProperties.Name="{DynamicResource pdf.next}">
+            <PathIcon Data="{StaticResource Icon.ChevronRight}" />
+          </Button>
+        </StackPanel>
+        <TextBlock Classes="caption" VerticalAlignment="Center" Text="{Binding PageStatus}" />
+      </DockPanel>
+
+      <Grid ColumnDefinitions="172,*,280">
+        <!-- Thumbnails -->
+        <Border Classes="card" Padding="4" Margin="0,0,10,0">
+          <Panel>
+            <ListBox x:Name="Thumbs" Classes="thumbs" ItemsSource="{Binding Pages}" SelectionMode="Multiple"
+                     SelectedItem="{Binding CurrentPage}" Background="Transparent"
+                     AutomationProperties.Name="{DynamicResource pdf.pages}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:PdfPageItem">
+                  <StackPanel Spacing="4" HorizontalAlignment="Center" ToolTip.Tip="{Binding SourceName}">
+                    <Border Width="124" Height="124" Background="Transparent">
+                      <LayoutTransformControl HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <LayoutTransformControl.LayoutTransform>
+                          <RotateTransform Angle="{Binding Rotation}" />
+                        </LayoutTransformControl.LayoutTransform>
+                        <Border BoxShadow="0 1 3 0 #26000000" Background="White">
+                          <Image Source="{Binding Thumbnail}" MaxWidth="120" MaxHeight="120" Stretch="Uniform" />
+                        </Border>
+                      </LayoutTransformControl>
+                    </Border>
+                    <TextBlock Classes="caption" HorizontalAlignment="Center" Text="{Binding Number}" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <!-- Where dragged pages go -->
+            <Border x:Name="DropMarker" Height="3" Background="{DynamicResource AccentBrush}" VerticalAlignment="Top"
+                    IsVisible="False" IsHitTestVisible="False" CornerRadius="2" Margin="6,0" />
+          </Panel>
+        </Border>
+
+        <!-- Preview -->
+        <Border Grid.Column="1" Classes="card" Padding="0" Background="{DynamicResource SurfaceAltBrush}">
+          <ScrollViewer x:Name="PreviewScroller" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="24">
+              <Border BoxShadow="0 2 10 0 #33000000" Background="White"
+                      Width="{Binding OverlayWidth}" Height="{Binding OverlayHeight}">
+                <LayoutTransformControl HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <LayoutTransformControl.LayoutTransform>
+                    <RotateTransform Angle="{Binding CurrentPage.Rotation, FallbackValue=0}" />
+                  </LayoutTransformControl.LayoutTransform>
+                  <Image Source="{Binding PreviewBitmap}" Width="{Binding PreviewWidth}" Height="{Binding PreviewHeight}" Stretch="Fill" />
+                </LayoutTransformControl>
+              </Border>
+              <!-- Marks of the current page and the shape being drawn -->
+              <Canvas x:Name="Overlay" Background="Transparent" Width="{Binding OverlayWidth}" Height="{Binding OverlayHeight}"
+                      ClipToBounds="True" Cursor="Cross">
+                <ItemsControl ItemsSource="{Binding CurrentPage.Marks, FallbackValue={x:Null}}" Width="{Binding OverlayWidth}" Height="{Binding OverlayHeight}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><Canvas /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.Styles>
+                    <Style Selector="ItemsControl > ContentPresenter" x:DataType="vm:PdfMarkItem">
+                      <Setter Property="Canvas.Left" Value="{Binding Left}" />
+                      <Setter Property="Canvas.Top" Value="{Binding Top}" />
+                    </Style>
+                  </ItemsControl.Styles>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PdfMarkItem">
+                      <Panel Width="{Binding PixelWidth}" Height="{Binding PixelHeight}" IsHitTestVisible="False">
+                        <Border IsVisible="{Binding IsHighlight}" Background="{Binding FillBrush}" />
+                        <Border IsVisible="{Binding IsUnderline}" BorderBrush="{Binding Brush}" BorderThickness="0,0,0,2" />
+                        <Rectangle IsVisible="{Binding IsStrikeOut}" Fill="{Binding Brush}" Height="2" VerticalAlignment="Center" />
+                        <Border IsVisible="{Binding IsBox}" BorderBrush="{Binding Brush}" BorderThickness="2" />
+                        <Ellipse IsVisible="{Binding IsEllipse}" Stroke="{Binding Brush}" StrokeThickness="{Binding PixelLineWidth}" />
+                        <Line IsVisible="{Binding IsLine}" StartPoint="{Binding LineStart}" EndPoint="{Binding LineEnd}"
+                              Stroke="{Binding Brush}" StrokeThickness="{Binding PixelLineWidth}" StrokeLineCap="Round" />
+                        <Border IsVisible="{Binding IsNote}" Background="{Binding Brush}" BorderBrush="Black" BorderThickness="0.6" CornerRadius="2" ToolTip.Tip="{Binding Text}">
+                          <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Note}" Foreground="#222" />
+                        </Border>
+                        <TextBlock IsVisible="{Binding IsFreeText}" Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="{Binding PixelFontSize}"
+                                   FontFamily="Arial" TextWrapping="NoWrap" Margin="2,0,0,0" />
+                        <Image IsVisible="{Binding IsImage}" Source="{Binding Picture}" Stretch="Fill" />
+                        <!-- Replaced text: the old line covered in the preview, the new text where it will be written. -->
+                        <!-- A canvas, so new text longer than the old line shows in full -->
+                        <Canvas IsVisible="{Binding IsReplaceText}">
+                          <Border Background="White" MinWidth="{Binding CoverWidth}" MinHeight="{Binding PixelHeight}" Margin="-4,-5,0,-5" Padding="4,5,8,5">
+                            <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="{Binding PixelFontSize}" FontFamily="Arial"
+                                       TextWrapping="NoWrap" VerticalAlignment="Center" />
+                          </Border>
+                        </Canvas>
+                        <Border IsVisible="{Binding IsSelected}" BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1.5"
+                                Margin="-3" CornerRadius="2" />
+                        <!-- Drag to resize (pictures and signatures keep their aspect ratio) -->
+                        <Border IsVisible="{Binding ShowsResizeHandle}" Width="11" Height="11" Margin="0,0,-6,-6" CornerRadius="2"
+                                HorizontalAlignment="Right" VerticalAlignment="Bottom" Background="{DynamicResource AccentBrush}"
+                                BorderBrush="White" BorderThickness="1.5" />
+                      </Panel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border x:Name="RubberBand" IsVisible="False" BorderThickness="1.5" BorderBrush="{DynamicResource AccentBrush}"
+                        Background="{DynamicResource AccentFaintBrush}" IsHitTestVisible="False" />
+                <!-- The Line tool previews the line itself, from where it was pressed to the pointer -->
+                <Line x:Name="RubberLine" IsVisible="False" Stroke="{DynamicResource AccentBrush}" StrokeThickness="2"
+                      StrokeLineCap="Round" IsHitTestVisible="False" />
+              </Canvas>
+            </Grid>
+          </ScrollViewer>
+        </Border>
+
+        <!-- Side panel -->
+        <ScrollViewer Grid.Column="2" Margin="10,0,0,0" VerticalScrollBarVisibility="Auto">
+          <StackPanel Spacing="10">
+            <!-- Selected mark -->
+            <Border Classes="card" IsVisible="{Binding HasSelectedMark}" Padding="14,12">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="h2" Text="{DynamicResource pdf.mark}" />
+                <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource pdf.edit_text_hint}"
+                           IsVisible="{Binding SelectedMark.IsReplaceText, FallbackValue=False}" />
+                <StackPanel Spacing="4" IsVisible="{Binding SelectedMark.HasText, FallbackValue=False}">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.mark_text}" />
+                  <TextBox x:Name="MarkText" Text="{Binding SelectedMark.Text, FallbackValue={x:Null}}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="60" />
+                </StackPanel>
+                <StackPanel Spacing="4" IsVisible="{Binding SelectedMark.HasLineWidth, FallbackValue=False}">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.line_width}" />
+                  <Slider x:Name="MarkLine" Minimum="0.5" Maximum="12" Value="{Binding SelectedMark.LineWidth, FallbackValue=2}" />
+                </StackPanel>
+                <StackPanel Spacing="4" IsVisible="{Binding SelectedMark.IsFreeText, FallbackValue=False}">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.font_size}" />
+                  <Slider x:Name="MarkFont" Minimum="6" Maximum="72" Value="{Binding SelectedMark.FontSize, FallbackValue=14}" />
+                </StackPanel>
+                <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource pdf.mark_hint}"
+                           IsVisible="{Binding !SelectedMark.IsReplaceText, FallbackValue=True}" />
+                <Button Content="{DynamicResource pdf.delete_mark}" Command="{Binding DeleteMarkCommand}" />
+              </StackPanel>
+            </Border>
+
+            <!-- Form fields of the document -->
+            <Border Classes="card" Padding="14,12" IsVisible="{Binding HasFields}">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h2" Text="{DynamicResource pdf.form}" />
+                <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource pdf.form_hint}" />
+                <ItemsControl ItemsSource="{Binding Fields}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PdfFieldItem">
+                      <StackPanel Spacing="4" IsEnabled="{Binding IsEditable}">
+                        <TextBlock Classes="label" Text="{Binding Label}" IsVisible="{Binding !IsCheckBox}" TextWrapping="Wrap" />
+                        <TextBox IsVisible="{Binding IsText}" Text="{Binding Value}" AutomationProperties.Name="{Binding Label}" />
+                        <CheckBox IsVisible="{Binding IsCheckBox}" IsChecked="{Binding IsChecked}" Content="{Binding Label}" />
+                        <ComboBox IsVisible="{Binding IsChoice}" ItemsSource="{Binding Options}" SelectedItem="{Binding Value}"
+                                  HorizontalAlignment="Stretch" AutomationProperties.Name="{Binding Label}" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <!-- Options applied when saving -->
+            <Border Classes="card" Padding="14,12">
+              <StackPanel Spacing="10">
+                <TextBlock Classes="h2" Text="{DynamicResource pdf.on_save}" />
+                <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource pdf.on_save_hint}" />
+                <CheckBox IsChecked="{Binding AddPageNumbers}" Content="{DynamicResource pdf.page_numbers}" />
+                <StackPanel Spacing="6" IsVisible="{Binding AddPageNumbers}">
+                  <TextBox Text="{Binding PageNumberFormat}" AutomationProperties.Name="{DynamicResource pdf.page_numbers}" />
+                  <ComboBox ItemsSource="{Binding Positions}" SelectedItem="{Binding SelectedPosition}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource pdf.page_numbers}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.header}" />
+                  <TextBox Text="{Binding Header}" PlaceholderText="{DynamicResource pdf.header_hint}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.footer}" />
+                  <TextBox Text="{Binding Footer}" PlaceholderText="{DynamicResource pdf.header_hint}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.watermark}" />
+                  <TextBox Text="{Binding Watermark}" PlaceholderText="{DynamicResource pdf.watermark_hint}" />
+                  <TextBlock Classes="caption" Text="{DynamicResource pdf.watermark_opacity}" />
+                  <Slider Minimum="0.05" Maximum="0.6" Value="{Binding WatermarkOpacity}" AutomationProperties.Name="{DynamicResource pdf.watermark_opacity}"
+                          ToolTip.Tip="{DynamicResource pdf.watermark_opacity}" />
+                </StackPanel>
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="label" Text="{DynamicResource pdf.password}" />
+                  <TextBox Text="{Binding Password}" PasswordChar="•" RevealPassword="False" PlaceholderText="{DynamicResource pdf.password_hint}" />
+                </StackPanel>
+                <CheckBox IsChecked="{Binding RemoveMetadata}" Content="{DynamicResource pdf.remove_metadata}" />
+                <CheckBox IsChecked="{Binding SignWithCertificate}" Content="{DynamicResource pdf.cert_sign}" />
+                <StackPanel Spacing="6" IsVisible="{Binding SignWithCertificate}">
+                  <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Command="{Binding PickCertificateCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <PathIcon Width="14" Height="14" Data="{StaticResource Icon.Lock}" />
+                      <TextBlock Text="{Binding CertificateName}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </Button>
+                  <TextBox Text="{Binding CertificatePassword}" PasswordChar="•" PlaceholderText="{DynamicResource pdf.cert_password}" />
+                  <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource pdf.cert_hint}" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+    </DockPanel>
+  </Grid>
+</UserControl>

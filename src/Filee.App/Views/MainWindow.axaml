@@ -1,0 +1,164 @@
+<!-- Foldex main window: glass sidebar, a top bar drawn into the title bar (search, light/dark), and the current page.
+     Closing hides to the tray. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Filee.App.ViewModels"
+        x:Class="Filee.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Foldex"
+        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Width="1280" Height="820" MinWidth="900" MinHeight="600"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="60"
+        WindowStartupLocation="CenterScreen">
+  <Window.Resources>
+    <DataTemplate x:Key="NavItemTemplate" x:DataType="vm:NavItem">
+      <StackPanel Orientation="Horizontal" Spacing="13">
+        <PathIcon Width="18" Height="18" Data="{Binding Icon}" />
+        <TextBlock Text="{Binding Title}" VerticalAlignment="Center" FontWeight="Medium" />
+      </StackPanel>
+    </DataTemplate>
+  </Window.Resources>
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+K" Command="{Binding FocusSearchCommand}" />
+  </Window.KeyBindings>
+
+  <Panel>
+    <!-- Aurora glows behind everything -->
+    <Ellipse Width="900" Height="700" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-320,-300,0" IsHitTestVisible="False">
+      <Ellipse.Fill>
+        <RadialGradientBrush>
+          <GradientStop Offset="0" Color="{Binding GlowA}" />
+          <GradientStop Offset="1" Color="#00000000" />
+        </RadialGradientBrush>
+      </Ellipse.Fill>
+    </Ellipse>
+    <Ellipse Width="800" Height="700" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-260,0,0,-360" IsHitTestVisible="False">
+      <Ellipse.Fill>
+        <RadialGradientBrush>
+          <GradientStop Offset="0" Color="{Binding GlowB}" />
+          <GradientStop Offset="1" Color="#00000000" />
+        </RadialGradientBrush>
+      </Ellipse.Fill>
+    </Ellipse>
+
+    <Grid ColumnDefinitions="260,*">
+      <!-- ───────── Sidebar ───────── -->
+      <Border Margin="12" Padding="12,14" CornerRadius="20" Background="{DynamicResource SidebarBrush}"
+              BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="11" Margin="8,4,0,22" IsHitTestVisible="False">
+            <Image Source="avares://Filee/Assets/Icons/filee.png" Width="38" Height="38" />
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="Foldex" FontSize="21" FontWeight="Bold" FontFamily="{DynamicResource DisplayFontFamily}" />
+              <TextBlock Classes="caption" Text="{DynamicResource app.tagline}" />
+            </StackPanel>
+          </StackPanel>
+
+          <!-- Bottom: update (when there is one), profile and support links, version -->
+          <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="2,12,2,0">
+            <Button x:Name="UpdateButton" Classes.accent="{Binding !Updates.IsOptional}" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Command="{Binding DownloadUpdateCommand}" IsVisible="{Binding Updates.IsUpdateAvailable}"
+                    ToolTip.Tip="{Binding UpdateTip}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Width="14" Height="14" Data="{StaticResource Icon.Download}" />
+                <TextBlock Text="{Binding UpdateText}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Button>
+            <Grid ColumnDefinitions="Auto,8,*">
+              <Button Classes="navlink" HorizontalAlignment="Stretch" Click="OnOpenGitHub" ToolTip.Tip="{Binding ProfileUrl}"
+                      AutomationProperties.Name="GitHub">
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Width="13" Height="13" Data="{StaticResource Icon.GitHub}" />
+                  <TextBlock Text="GitHub" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="2" Classes="navlink" HorizontalAlignment="Stretch" Click="OnSponsor" ToolTip.Tip="{Binding SupportUrl}"
+                      AutomationProperties.Name="{DynamicResource about.sponsor}">
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+                  <PathIcon Width="13" Height="13" Data="{StaticResource Icon.Coffee}" Foreground="#F59E0B" />
+                  <TextBlock Text="{DynamicResource about.sponsor}" />
+                </StackPanel>
+              </Button>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="8,0,0,0">
+              <TextBlock x:Name="VersionLabel" Classes="caption" VerticalAlignment="Center" Text="{Binding VersionText}" />
+              <Button Classes="ghost" Padding="0" Click="OnLicenses" VerticalAlignment="Center">
+                <TextBlock Classes="caption" TextDecorations="Underline" Text="{DynamicResource shell.licenses}" />
+              </Button>
+            </StackPanel>
+          </StackPanel>
+
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="2">
+              <TextBlock Classes="navgroup" Text="{DynamicResource nav.group.workspace}" />
+              <ListBox Classes="nav" ItemsSource="{Binding WorkspaceItems}" SelectedItem="{Binding SelectedWorkspaceItem}"
+                       AutomationProperties.Name="{DynamicResource nav.group.workspace}" ItemTemplate="{StaticResource NavItemTemplate}" />
+              <TextBlock Classes="navgroup" Text="{DynamicResource nav.group.settings}" Margin="14,18,0,6" />
+              <ListBox Classes="nav" ItemsSource="{Binding SettingsItems}" SelectedItem="{Binding SelectedSettingsItem}"
+                       AutomationProperties.Name="{DynamicResource nav.group.settings}" ItemTemplate="{StaticResource NavItemTemplate}" />
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+      <!-- ───────── Top bar + page ───────── -->
+      <Grid Grid.Column="1" RowDefinitions="60,*">
+        <!-- In the title bar: empty areas drag the window; the right edge leaves room for the caption buttons. -->
+        <DockPanel Margin="4,10,150,0">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Border CornerRadius="999" Padding="3" Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource SubtleBorderBrush}" BorderThickness="1">
+              <StackPanel Orientation="Horizontal" Spacing="2">
+                <ToggleButton Classes="mode" IsChecked="{Binding IsLight}" Command="{Binding UseLightCommand}"
+                              ToolTip.Tip="{DynamicResource shell.light}" AutomationProperties.Name="{DynamicResource shell.light}">
+                  <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Sun}" />
+                </ToggleButton>
+                <ToggleButton Classes="mode" IsChecked="{Binding IsDark}" Command="{Binding UseDarkCommand}"
+                              ToolTip.Tip="{DynamicResource shell.dark}" AutomationProperties.Name="{DynamicResource shell.dark}">
+                  <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Moon}" />
+                </ToggleButton>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+          <AutoCompleteBox x:Name="Search" HorizontalAlignment="Left" Width="460" VerticalAlignment="Center"
+                           ItemsSource="{Binding SearchEntries}" FilterMode="Contains" MinimumPrefixLength="1"
+                           PlaceholderText="{DynamicResource shell.search}" ValueMemberBinding="{Binding Title, x:DataType=vm:SearchEntry}"
+                           AutomationProperties.Name="{DynamicResource shell.search}">
+            <AutoCompleteBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SearchEntry">
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="2">
+                  <PathIcon Width="15" Height="15" Data="{Binding Icon}" Foreground="{DynamicResource AccentBrush}" />
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                  <TextBlock Classes="caption" Text="{Binding Detail}" VerticalAlignment="Center" />
+                </StackPanel>
+              </DataTemplate>
+            </AutoCompleteBox.ItemTemplate>
+          </AutoCompleteBox>
+        </DockPanel>
+
+        <ScrollViewer Grid.Row="1" x:Name="PageScroller" VerticalScrollBarVisibility="{Binding PageScroll}">
+          <ContentControl Classes="page" Content="{Binding CurrentPage}" Margin="16,8,24,24" MaxWidth="{Binding PageMaxWidth}" HorizontalAlignment="Stretch" />
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Panel>
+
+  <Window.Styles>
+    <Style Selector="ToggleButton.mode">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="9,7" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.mode:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentGradientBrush}" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="AutoCompleteBox /template/ TextBox">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="16,8" />
+    </Style>
+  </Window.Styles>
+</Window>

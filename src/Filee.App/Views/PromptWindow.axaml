@@ -1,0 +1,26 @@
+<!-- A small question: yes / no, save / don't save / cancel, or a line of text (a password) to enter. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="Filee.App.Views.PromptWindow"
+        Title="Foldex"
+        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Width="420"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+  <StackPanel Margin="22" Spacing="14">
+    <StackPanel Spacing="4">
+      <TextBlock x:Name="Heading" Classes="h2" TextWrapping="Wrap" />
+      <TextBlock x:Name="Message" Classes="caption" TextWrapping="Wrap" />
+    </StackPanel>
+    <TextBox x:Name="Input" IsVisible="False" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="CancelButton" MinWidth="88" HorizontalContentAlignment="Center" IsCancel="True"
+              Content="{DynamicResource common.cancel}" Click="OnCancel" />
+      <Button x:Name="AltButton" MinWidth="88" HorizontalContentAlignment="Center" IsVisible="False" Click="OnAlt" />
+      <Button x:Name="OkButton" MinWidth="88" HorizontalContentAlignment="Center" IsDefault="True" Classes="accent"
+              Content="{DynamicResource common.ok}" Click="OnOk" />
+    </StackPanel>
+  </StackPanel>
+</Window>

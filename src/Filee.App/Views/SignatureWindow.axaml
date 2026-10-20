@@ -1,0 +1,150 @@
+<!-- Signature Studio: type a name in one of five signature styles, draw it, or upload a picture of it. The result is a
+     transparent PNG placed on the page as a picture (a visual signature, not a certificate signature). -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:Filee.App.Views"
+        x:Class="Filee.App.Views.SignatureWindow"
+        Title="Foldex"
+        Icon="avares://Filee/Assets/Icons/filee.ico"
+        Width="860"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+  <Window.Styles>
+    <Style Selector="ListBox#Styles ListBoxItem">
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="Margin" Value="0,0,0,6" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="BorderBrush" Value="{DynamicResource SubtleBorderBrush}" />
+    </Style>
+    <Style Selector="ListBox#Styles ListBoxItem:selected">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="ListBox#Styles ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AccentFaintBrush}" />
+    </Style>
+    <Style Selector="ListBox#Colors ListBoxItem">
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox#Colors ListBoxItem:selected">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="ListBox#Colors ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+  </Window.Styles>
+
+  <Grid Margin="24,22" ColumnDefinitions="*,24,260" RowDefinitions="Auto,*,Auto">
+    <StackPanel Grid.ColumnSpan="3" Spacing="4" Margin="0,0,0,16">
+      <TextBlock Classes="h2" FontSize="20" Text="{DynamicResource sig.title}" />
+      <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource sig.hint}" />
+    </StackPanel>
+
+    <!-- ───────── Input ───────── -->
+    <TabControl x:Name="Modes" Grid.Row="1" Padding="0,10,0,0">
+      <TabItem x:Name="TypeTab" Header="{DynamicResource sig.type}">
+        <StackPanel Spacing="10">
+          <TextBox x:Name="NameBox" PlaceholderText="{DynamicResource sig.type_hint}" AutomationProperties.Name="{DynamicResource sig.type_hint}" MaxLength="60" />
+          <ListBox x:Name="Styles" Background="Transparent" AutomationProperties.Name="{DynamicResource sig.styles}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="views:SignatureStyle">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Left" Width="120" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding Title}" TextWrapping="Wrap" />
+                  <!-- On paper, as it will look on the page -->
+                  <Border Background="White" CornerRadius="6" Height="58" Padding="14,0" ClipToBounds="True">
+                    <TextBlock Text="{Binding Sample}" FontFamily="{Binding Family}" FontSize="32" FontWeight="{Binding Weight}"
+                               Foreground="{Binding Ink}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  </Border>
+                </DockPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
+      </TabItem>
+      <TabItem x:Name="DrawTab" Header="{DynamicResource sig.draw}">
+        <StackPanel Spacing="10">
+          <Border Background="White" CornerRadius="{DynamicResource SoftRadiusSmall}" BorderThickness="1"
+                  BorderBrush="{DynamicResource SubtleBorderBrush}" HorizontalAlignment="Left">
+            <Grid>
+              <Rectangle Height="1" Fill="#D0D4DC" VerticalAlignment="Bottom" Margin="24,0,24,40" IsHitTestVisible="False" />
+              <TextBlock Classes="caption" Foreground="#8A90A0" Text="{DynamicResource sig.draw_here}" Margin="24,0,0,18"
+                         VerticalAlignment="Bottom" IsHitTestVisible="False" />
+              <Panel x:Name="Surface" Width="540" Height="190" Background="Transparent" Cursor="Cross"
+                     AutomationProperties.Name="{DynamicResource sig.draw_here}">
+                <Canvas x:Name="Strokes" />
+              </Panel>
+            </Grid>
+          </Border>
+          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+            <TextBlock VerticalAlignment="Center" Text="{DynamicResource sig.thickness}" />
+            <Slider x:Name="Thickness" Grid.Column="1" Minimum="1" Maximum="8" Value="2.6" AutomationProperties.Name="{DynamicResource sig.thickness}" />
+            <Button x:Name="UndoStroke" Grid.Column="2" Content="{DynamicResource sig.undo_stroke}" Click="OnUndoStroke" />
+            <Button Grid.Column="3" Content="{DynamicResource sig.clear}" Click="OnClear" />
+          </Grid>
+        </StackPanel>
+      </TabItem>
+      <TabItem x:Name="UploadTab" Header="{DynamicResource sig.upload}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource sig.upload_hint}" />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Click="OnChoosePicture" Content="{DynamicResource sig.choose}" />
+            <TextBlock x:Name="UploadName" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="300" />
+          </StackPanel>
+          <CheckBox x:Name="RemoveWhite" IsChecked="True" Content="{DynamicResource sig.remove_white}" />
+        </StackPanel>
+      </TabItem>
+    </TabControl>
+
+    <!-- ───────── Preview and settings ───────── -->
+    <StackPanel Grid.Row="1" Grid.Column="2" Spacing="14">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="label" Text="{DynamicResource sig.preview}" />
+        <Border Background="White" Height="120" CornerRadius="{DynamicResource SoftRadiusSmall}" BorderThickness="1"
+                BorderBrush="{DynamicResource SubtleBorderBrush}" Padding="12">
+          <Panel>
+            <Image x:Name="Preview" Stretch="Uniform" />
+            <TextBlock x:Name="PreviewEmpty" Classes="caption" Foreground="#8A90A0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       TextAlignment="Center" TextWrapping="Wrap" Text="{DynamicResource sig.preview_empty}" />
+          </Panel>
+        </Border>
+        <TextBlock x:Name="PreviewSize" Classes="caption" />
+        <TextBlock x:Name="ErrorText" Classes="caption danger" TextWrapping="Wrap" IsVisible="False" />
+      </StackPanel>
+      <StackPanel Spacing="6" x:Name="ColorPanel">
+        <TextBlock Classes="label" Text="{DynamicResource sig.color}" />
+        <ListBox x:Name="Colors" Background="Transparent" AutomationProperties.Name="{DynamicResource sig.color}">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <Border Width="22" Height="22" CornerRadius="11" Background="{Binding}" BorderBrush="#40FFFFFF" BorderThickness="1"
+                      ToolTip.Tip="{Binding}" AutomationProperties.Name="{Binding}" />
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+      <StackPanel Spacing="6">
+        <TextBlock Classes="label" Text="{DynamicResource sig.size}" />
+        <Slider x:Name="SizeSlider" Minimum="60" Maximum="360" Value="180" SmallChange="10" LargeChange="30"
+                AutomationProperties.Name="{DynamicResource sig.size}" />
+      </StackPanel>
+    </StackPanel>
+
+    <!-- ───────── Actions ───────── -->
+    <DockPanel Grid.Row="2" Grid.ColumnSpan="3" Margin="0,18,0,0">
+      <Button x:Name="LastButton" DockPanel.Dock="Left" Content="{DynamicResource sig.last}" Click="OnLast" IsVisible="False" />
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button MinWidth="96" HorizontalContentAlignment="Center" IsCancel="True" Content="{DynamicResource common.cancel}" Click="OnCancel" />
+        <Button x:Name="InsertButton" MinWidth="96" HorizontalContentAlignment="Center" IsDefault="True" Classes="accent"
+                Content="{DynamicResource sig.insert}" Click="OnInsert" IsEnabled="False" />
+      </StackPanel>
+    </DockPanel>
+  </Grid>
+</Window>

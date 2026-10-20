@@ -1,0 +1,28 @@
+<!--
+  Borderless, transparent, always-on-top window that hosts the live Quick panel at the cursor.
+  It is created once and reused (shown/hidden) so it appears instantly.
+  ShowActivated=False: during a file drag it must not steal focus from Explorer, or the drag would break.
+-->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:Filee.App.Controls"
+        xmlns:vm="using:Filee.App.ViewModels"
+        x:Class="Filee.App.Views.QuickPanelWindow"
+        x:DataType="vm:RadialViewModel"
+        Title="Foldex"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        CanResize="False"
+        SizeToContent="WidthAndHeight">
+  <Panel x:Name="Root" Background="{Binding HitBackground}" DragDrop.AllowDrop="True">
+    <c:QuickPanel x:Name="Donut" Margin="18"
+                  Opacity="{Binding DonutOpacity}"
+                  Items="{Binding Items}"
+                  CenterTitle="{Binding CenterTitle}"
+                  CenterSubtitle="{Binding CenterSubtitle}" />
+  </Panel>
+</Window>

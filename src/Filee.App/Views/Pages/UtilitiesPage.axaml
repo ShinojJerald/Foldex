@@ -1,0 +1,168 @@
+<!-- File utilities: folder scans, compare, picture metadata, batch rename. Nothing is deleted by a scan. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Filee.App.ViewModels.Pages"
+             xmlns:files="using:Filee.Core.Files"
+             xmlns:magick="using:Filee.Engines.Magick"
+             x:Class="Filee.App.Views.Pages.UtilitiesPage"
+             x:DataType="vm:UtilitiesPageViewModel">
+  <StackPanel Spacing="16" MaxWidth="1100">
+    <DockPanel>
+      <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" IsVisible="{Binding IsBusy}" VerticalAlignment="Center">
+        <ProgressBar Width="120" Minimum="0" Maximum="1" Value="{Binding Progress}" />
+        <Button Content="{DynamicResource common.cancel}" Command="{Binding CancelScanCommand}" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="{DynamicResource utils.title}" />
+        <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource utils.subtitle}" />
+      </StackPanel>
+    </DockPanel>
+
+    <Border IsVisible="{Binding HasMessage}" Classes="card" Padding="14,10">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding DismissMessageCommand}" AutomationProperties.Name="{DynamicResource pdf.dismiss}">
+          <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
+        </Button>
+        <Button DockPanel.Dock="Right" Classes="ghost" Content="{DynamicResource home.open_folder}" Command="{Binding RevealCommand}" CommandParameter="{Binding LastOutput}"
+                IsVisible="{Binding LastOutput, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding MessageIsError}" />
+          <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding !MessageIsError}" />
+          <SelectableTextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Folder scans -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Search}" Foreground="{DynamicResource AccentBrush}" />
+          <TextBlock Classes="h2" Text="{DynamicResource utils.scan}" />
+        </StackPanel>
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource utils.scan_hint}" />
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="{DynamicResource tools.choose}" Command="{Binding PickFolderCommand}" Margin="8,0,0,0" />
+          <TextBox Text="{Binding Folder}" PlaceholderText="{DynamicResource utils.no_folder}" AutomationProperties.Name="{DynamicResource utils.scan}" />
+        </DockPanel>
+        <CheckBox IsChecked="{Binding Recursive}" Content="{DynamicResource utils.recursive}" />
+        <WrapPanel>
+          <Button Classes="accent" Content="{DynamicResource utils.duplicates}" Command="{Binding FindDuplicatesCommand}" Margin="0,0,6,6" />
+          <Button Content="{DynamicResource utils.largest}" Command="{Binding FindLargestCommand}" Margin="0,0,6,6" />
+          <Button Content="{DynamicResource utils.mismatches}" Command="{Binding FindMismatchesCommand}" Margin="0,0,6,6" />
+        </WrapPanel>
+        <ListBox ItemsSource="{Binding ScanResults}" MaxHeight="360" Background="{DynamicResource SurfaceAltBrush}"
+                 CornerRadius="{DynamicResource SoftRadiusSmall}" IsVisible="{Binding !!ScanResults.Count}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:ScanRow">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="{DynamicResource utils.show}" IsVisible="{Binding !IsHeader}"
+                        Command="{Binding $parent[UserControl].((vm:UtilitiesPageViewModel)DataContext).RevealCommand}" CommandParameter="{Binding Path}" />
+                <StackPanel>
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Classes.h2="{Binding IsHeader}" />
+                  <TextBlock Classes="caption" Text="{Binding Detail}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Detail}" />
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </StackPanel>
+    </Border>
+
+    <UniformGrid x:Name="Cards" Columns="2">
+      <!-- Picture metadata -->
+      <Border Classes="card" Margin="0,0,8,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Fingerprint}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource utils.metadata}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource utils.metadata_hint}" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{DynamicResource tools.choose}" Command="{Binding PickMetadataFileCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding MetadataFile}" IsReadOnly="True" PlaceholderText="{DynamicResource tools.no_file}" />
+          </DockPanel>
+          <Border IsVisible="{Binding GpsText, Converter={x:Static ObjectConverters.IsNotNull}}" Padding="10,6"
+                  CornerRadius="{DynamicResource SoftRadiusSmall}" BorderThickness="1" BorderBrush="{DynamicResource WarningBrush}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Width="14" Height="14" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource WarningBrush}" />
+              <TextBlock Text="{Binding GpsText}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <ListBox ItemsSource="{Binding MetadataEntries}" MaxHeight="220" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="{DynamicResource SoftRadiusSmall}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="magick:MetadataEntry">
+                <Grid ColumnDefinitions="60,140,*">
+                  <TextBlock Classes="caption" Text="{Binding Group}" />
+                  <TextBlock Grid.Column="1" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Grid.Column="2" Text="{Binding Value}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Value}" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Button HorizontalAlignment="Left" Classes="accent" Content="{DynamicResource utils.metadata_remove}" Command="{Binding RemoveMetadataCommand}"
+                  IsEnabled="{Binding MetadataFile, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Compare -->
+      <Border Classes="card" Margin="8,0,0,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Copy}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource utils.compare}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource utils.compare_hint}" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{DynamicResource tools.choose}" Command="{Binding PickCompareACommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding CompareA}" IsReadOnly="True" PlaceholderText="{DynamicResource tools.no_file}" />
+          </DockPanel>
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{DynamicResource tools.choose}" Command="{Binding PickCompareBCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding CompareB}" IsReadOnly="True" PlaceholderText="{DynamicResource tools.no_file}" />
+          </DockPanel>
+          <Button HorizontalAlignment="Left" Classes="accent" Content="{DynamicResource utils.compare_button}" Command="{Binding CompareCommand}" />
+          <TextBlock Text="{Binding CompareResult}" TextWrapping="Wrap" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+
+    <!-- Batch rename -->
+    <Border Classes="card">
+      <StackPanel Spacing="10">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Pencil}" Foreground="{DynamicResource AccentBrush}" />
+          <TextBlock Classes="h2" Text="{DynamicResource utils.rename}" />
+        </StackPanel>
+        <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource utils.rename_hint}" />
+        <Grid ColumnDefinitions="2*,12,*,12,*,12,150" RowDefinitions="Auto,Auto">
+          <TextBlock Classes="label" Text="{DynamicResource utils.rename_pattern}" />
+          <TextBox Grid.Row="1" Text="{Binding RenamePattern}" AutomationProperties.Name="{DynamicResource utils.rename_pattern}" />
+          <TextBlock Grid.Column="2" Classes="label" Text="{DynamicResource utils.rename_find}" />
+          <TextBox Grid.Column="2" Grid.Row="1" Text="{Binding RenameFind}" AutomationProperties.Name="{DynamicResource utils.rename_find}" />
+          <TextBlock Grid.Column="4" Classes="label" Text="{DynamicResource utils.rename_replace}" />
+          <TextBox Grid.Column="4" Grid.Row="1" Text="{Binding RenameReplace}" AutomationProperties.Name="{DynamicResource utils.rename_replace}" />
+          <TextBlock Grid.Column="6" Classes="label" Text="{DynamicResource utils.rename_start}" />
+          <NumericUpDown Grid.Column="6" Grid.Row="1" Value="{Binding RenameStart}" Minimum="0" Maximum="999999" FormatString="0" AutomationProperties.Name="{DynamicResource utils.rename_start}" />
+        </Grid>
+        <ListBox ItemsSource="{Binding RenamePreview}" MaxHeight="260" Background="{DynamicResource SurfaceAltBrush}" CornerRadius="{DynamicResource SoftRadiusSmall}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="files:RenamePlan">
+              <Grid ColumnDefinitions="*,24,*,90">
+                <TextBlock Text="{Binding OldName}" TextTrimming="CharacterEllipsis" />
+                <PathIcon Grid.Column="1" Width="12" Height="12" Data="{StaticResource Icon.ChevronRight}" />
+                <TextBlock Grid.Column="2" Text="{Binding NewName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Grid.Column="3" Classes="caption danger" Text="{Binding Problem}" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <WrapPanel>
+          <Button Content="{DynamicResource tools.add_files}" Command="{Binding AddRenameFilesCommand}" Margin="0,0,6,6" />
+          <Button Classes="ghost" Content="{DynamicResource tools.clear}" Command="{Binding ClearRenameFilesCommand}" Margin="0,0,6,6" />
+          <Button Classes="accent" Content="{DynamicResource utils.rename_button}" Command="{Binding ApplyRenameCommand}" Margin="0,0,6,6" />
+        </WrapPanel>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

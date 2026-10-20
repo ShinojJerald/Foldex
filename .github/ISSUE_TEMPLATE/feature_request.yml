@@ -1,0 +1,15 @@
+name: Feature request
+description: An idea that would make Foldex more useful.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Foldex to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it matter to you?
+      description: The task you're trying to get done.

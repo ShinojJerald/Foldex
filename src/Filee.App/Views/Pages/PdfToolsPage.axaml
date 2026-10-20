@@ -1,0 +1,186 @@
+<!-- PDF tools for whole files. Each card is one task; results list the files written. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Filee.App.ViewModels.Pages"
+             x:Class="Filee.App.Views.Pages.PdfToolsPage"
+             x:DataType="vm:PdfToolsPageViewModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox.files">
+      <Setter Property="MinHeight" Value="70" />
+      <Setter Property="MaxHeight" Value="170" />
+      <Setter Property="Background" Value="{DynamicResource SurfaceAltBrush}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource SoftRadiusSmall}" />
+    </Style>
+  </UserControl.Styles>
+  <ScrollViewer VerticalScrollBarVisibility="Auto">
+  <StackPanel Spacing="16" MaxWidth="1100">
+    <DockPanel>
+      <ProgressBar DockPanel.Dock="Right" IsIndeterminate="True" Width="90" VerticalAlignment="Center" IsVisible="{Binding IsBusy}" />
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="{DynamicResource tools.title}" />
+        <TextBlock Classes="muted" TextWrapping="Wrap" Text="{DynamicResource tools.subtitle}" />
+      </StackPanel>
+    </DockPanel>
+
+    <!-- Outcome of the last task -->
+    <Border IsVisible="{Binding HasMessage}" Classes="card" Padding="14,10">
+      <StackPanel Spacing="8">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Classes="ghost" Command="{Binding DismissMessageCommand}" AutomationProperties.Name="{DynamicResource pdf.dismiss}">
+            <PathIcon Width="12" Height="12" Data="{StaticResource Icon.Close}" />
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Alert}" Foreground="{DynamicResource DangerBrush}" IsVisible="{Binding MessageIsError}" />
+            <PathIcon Width="15" Height="15" Data="{StaticResource Icon.Check}" Foreground="{DynamicResource SuccessBrush}" IsVisible="{Binding !MessageIsError}" />
+            <SelectableTextBlock Text="{Binding Message}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          </StackPanel>
+        </DockPanel>
+        <ItemsControl ItemsSource="{Binding Results}" IsVisible="{Binding !MessageIsError}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ToolResult">
+              <DockPanel Margin="0,3">
+                <Button DockPanel.Dock="Right" Classes="ghost" Content="{DynamicResource home.open_folder}"
+                        Command="{Binding $parent[UserControl].((vm:PdfToolsPageViewModel)DataContext).RevealCommand}" CommandParameter="{Binding Path}" />
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+                  <TextBlock Classes="caption" Text="{Binding Detail}" TextWrapping="Wrap" Classes.danger="{Binding IsWarning}" />
+                </StackPanel>
+              </DockPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <UniformGrid Columns="2" x:Name="Cards">
+      <!-- Merge -->
+      <Border Classes="card" Margin="0,0,8,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Merge}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource tools.merge}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tools.merge_hint}" />
+          <ListBox Classes="files" ItemsSource="{Binding MergeFiles}" SelectedItem="{Binding SelectedMergeFile}" AutomationProperties.Name="{DynamicResource tools.merge}" />
+          <WrapPanel>
+            <Button Content="{DynamicResource tools.add_files}" Command="{Binding AddMergeFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="ghost" Command="{Binding MergeUpCommand}" Margin="0,0,6,6" AutomationProperties.Name="{DynamicResource tools.move_up}" ToolTip.Tip="{DynamicResource tools.move_up}">
+              <PathIcon Width="14" Height="14" Data="{StaticResource Icon.ArrowUp}" />
+            </Button>
+            <Button Classes="ghost" Command="{Binding MergeDownCommand}" Margin="0,0,6,6" AutomationProperties.Name="{DynamicResource tools.move_down}" ToolTip.Tip="{DynamicResource tools.move_down}">
+              <PathIcon Width="14" Height="14" Data="{StaticResource Icon.ArrowDown}" />
+            </Button>
+            <Button Classes="ghost" Command="{Binding RemoveMergeFileCommand}" Margin="0,0,6,6" AutomationProperties.Name="{DynamicResource tools.remove}" ToolTip.Tip="{DynamicResource tools.remove}">
+              <PathIcon Width="14" Height="14" Data="{StaticResource Icon.Delete}" />
+            </Button>
+            <Button Classes="accent" Content="{DynamicResource tools.merge_button}" Command="{Binding MergeCommand}" Margin="0,0,6,6" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Split -->
+      <Border Classes="card" Margin="8,0,0,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Copy}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource tools.split}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tools.split_hint}" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{DynamicResource tools.choose}" Command="{Binding PickSplitFileCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding SplitFile}" IsReadOnly="True" PlaceholderText="{DynamicResource tools.no_file}" />
+          </DockPanel>
+          <RadioButton GroupName="split" IsChecked="{Binding SplitEvery}" Content="{DynamicResource tools.split_every}" />
+          <NumericUpDown Value="{Binding SplitSize}" Minimum="1" Maximum="10000" Increment="1" FormatString="0" IsEnabled="{Binding SplitEvery}"
+                         HorizontalAlignment="Left" Width="150" AutomationProperties.Name="{DynamicResource tools.split_every}" />
+          <RadioButton GroupName="split" IsChecked="{Binding !SplitEvery}" Content="{DynamicResource tools.split_ranges}" />
+          <TextBox Text="{Binding SplitRanges}" IsEnabled="{Binding !SplitEvery}" AutomationProperties.Name="{DynamicResource tools.split_ranges}" />
+          <Button Classes="accent" HorizontalAlignment="Left" Content="{DynamicResource tools.split_button}" Command="{Binding SplitCommand}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Compress -->
+      <Border Classes="card" Margin="0,0,8,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Compress}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource tools.compress}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tools.compress_hint}" />
+          <ListBox Classes="files" ItemsSource="{Binding CompressFiles}" AutomationProperties.Name="{DynamicResource tools.compress}" />
+          <ComboBox ItemsSource="{Binding Levels}" SelectedItem="{Binding Level}" HorizontalAlignment="Stretch" AutomationProperties.Name="{DynamicResource tools.level}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Level.Hint}" />
+          <CheckBox IsChecked="{Binding CompressRemoveMetadata}" Content="{DynamicResource tools.remove_picture_metadata}" />
+          <WrapPanel>
+            <Button Content="{DynamicResource tools.add_files}" Command="{Binding AddCompressFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="ghost" Content="{DynamicResource tools.clear}" Command="{Binding ClearCompressFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="accent" Content="{DynamicResource tools.compress_button}" Command="{Binding CompressCommand}" Margin="0,0,6,6" IsEnabled="{Binding CanCompress}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Protect / unlock -->
+      <Border Classes="card" Margin="8,0,0,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Lock}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource tools.security}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tools.security_hint}" />
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{DynamicResource tools.choose}" Command="{Binding PickSecurityFileCommand}" Margin="8,0,0,0" />
+            <TextBox Text="{Binding SecurityFile}" IsReadOnly="True" PlaceholderText="{DynamicResource tools.no_file}" />
+          </DockPanel>
+          <TextBlock Classes="label" Text="{DynamicResource tools.current_password}" />
+          <TextBox Text="{Binding CurrentPassword}" PasswordChar="•" PlaceholderText="{DynamicResource tools.current_password_hint}" />
+          <TextBlock Classes="label" Text="{DynamicResource tools.new_password}" />
+          <TextBox Text="{Binding NewPassword}" PasswordChar="•" />
+          <WrapPanel>
+            <Button Classes="accent" Content="{DynamicResource tools.protect_button}" Command="{Binding ProtectCommand}" Margin="0,0,6,6" />
+            <Button Content="{DynamicResource tools.unlock_button}" Command="{Binding UnlockCommand}" Margin="0,0,6,6" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Text -->
+      <Border Classes="card" Margin="0,0,8,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Text}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource tools.text}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tools.text_hint}" />
+          <ListBox Classes="files" ItemsSource="{Binding TextFiles}" AutomationProperties.Name="{DynamicResource tools.text}" />
+          <WrapPanel>
+            <Button Content="{DynamicResource tools.add_files}" Command="{Binding AddTextFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="ghost" Content="{DynamicResource tools.clear}" Command="{Binding ClearTextFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="accent" Content="{DynamicResource tools.text_button}" Command="{Binding ExtractTextCommand}" Margin="0,0,6,6" IsEnabled="{Binding CanCompress}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- OCR -->
+      <Border Classes="card" Margin="8,0,0,16">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <PathIcon Width="18" Height="18" Data="{StaticResource Icon.Search}" Foreground="{DynamicResource AccentBrush}" />
+            <TextBlock Classes="h2" Text="{DynamicResource tools.ocr}" />
+          </StackPanel>
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{DynamicResource tools.ocr_hint}" />
+          <ListBox Classes="files" ItemsSource="{Binding OcrFiles}" AutomationProperties.Name="{DynamicResource tools.ocr}" />
+          <ComboBox ItemsSource="{Binding OcrLanguages}" SelectedItem="{Binding OcrLanguage}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{DynamicResource tools.ocr_language}" PlaceholderText="{DynamicResource tools.ocr_language}" />
+          <ProgressBar Minimum="0" Maximum="1" Value="{Binding OcrProgress}" IsVisible="{Binding IsBusy}" />
+          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding OcrStatus}" IsVisible="{Binding OcrStatus, Converter={x:Static ObjectConverters.IsNotNull}}" />
+          <WrapPanel>
+            <Button Content="{DynamicResource tools.add_files}" Command="{Binding AddOcrFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="ghost" Content="{DynamicResource tools.clear}" Command="{Binding ClearOcrFilesCommand}" Margin="0,0,6,6" />
+            <Button Classes="accent" Content="{DynamicResource tools.ocr_button}" Command="{Binding RunOcrCommand}" Margin="0,0,6,6" IsEnabled="{Binding OcrSupported}" />
+            <Button Content="{DynamicResource common.cancel}" Command="{Binding CancelOcrCommand}" Margin="0,0,6,6" IsVisible="{Binding IsBusy}" />
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </UniformGrid>
+  </StackPanel>
+  </ScrollViewer>
+</UserControl>
