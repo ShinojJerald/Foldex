@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="branding/foldex-logo-dark.png">
-    <img src="branding/foldex-logo-light.png" alt="Foldex" width="300">
-  </picture>
+  <img src="branding/foldex-logo-banner.png" alt="Foldex" width="380">
 </p>
 
 <h2 align="center">Convert files. Edit PDFs. One Windows workspace.</h2>
