@@ -29,7 +29,6 @@
   <a href="#pdf-editing-and-signatures"><b>PDF editing</b></a> ·
   <a href="#file-and-folder-utilities"><b>File utilities</b></a> ·
   <a href="#download-and-install"><b>Install</b></a> ·
-  <a href="#command-line"><b>Command line</b></a> ·
   <a href="#build-from-source"><b>Build</b></a>
 </p>
 
@@ -40,7 +39,7 @@
 <table>
   <tr>
     <td width="18%" valign="top">🔁 <b>Convert</b></td>
-    <td valign="top">Drop files on the Quick panel, right-click them in File Explorer, set up watch folders or use the <code>foldex</code> command. Conversions run on your PC with built-in engines; a few kinds of conversion need an optional engine you download once.</td>
+    <td valign="top">Drop files on the Quick panel, right-click them in File Explorer, or set up watch folders. Many conversions work as soon as Foldex is installed; audio, video and some office, markup and e-book conversions need an optional engine you download once.</td>
   </tr>
   <tr>
     <td width="18%" valign="top">📝 <b>Edit PDFs</b></td>
@@ -73,7 +72,6 @@ its engines can actually produce for the file you picked; `foldex formats <forma
       <b>Home</b> — drop files on the drop zone or use <i>Browse files</i> / <i>Browse folder</i>; progress shows in the
       task queue.<br><br>
       <b>Watch folders</b> — files that land in a folder are converted automatically with a preset.<br><br>
-      <b>Command line</b> — <code>foldex convert photo.heic --to jpg</code> (see <a href="#command-line">Command line</a>).<br><br>
       Converted files are saved as new files, next to the originals unless you choose another folder.
     </td>
   </tr>
@@ -251,29 +249,6 @@ Search every tool and page with <kbd>Ctrl</kbd>+<kbd>K</kbd> · light and dark t
 > (*More info → Run anyway*) if you downloaded the file from this repository's
 > [Releases page](https://github.com/ShinojJerald/Foldex/releases) **and** its SHA-256 hash matches the published
 > checksum. If either doesn't check out, delete the file.
-
-- Settings are stored in `%APPDATA%\Foldex` and downloaded engines in `%LOCALAPPDATA%\Foldex\engines`.
-- Uninstall from **Settings → Apps → Foldex**. Your settings stay unless you delete `%APPDATA%\Foldex`.
-- Foldex doesn't check for updates by itself yet. To hear about new versions, use GitHub's
-  *Watch → Custom → Releases* on this repository.
-
-## Command line
-
-Tick *Add the "foldex" command to PATH* in the installer, then open a new terminal:
-
-```powershell
-foldex convert photo.heic --to jpg
-foldex convert *.png --to webp --quality 80 -o converted
-foldex convert D:\Scans --recursive --preset to-pdf
-foldex watch D:\Inbox --to pdf --move-originals
-foldex formats            # every format
-foldex formats heic       # what HEIC converts to
-foldex presets
-foldex help convert
-```
-
-The command uses the same engines and presets as the app. Exit codes: 0 all converted, 1 some failed, 2 wrong
-arguments or a missing input, 3 nothing to convert.
 
 ## Keyboard shortcuts
 
