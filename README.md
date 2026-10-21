@@ -58,7 +58,7 @@ other 75 are read as input only (for example camera RAW, Apple Pages / Numbers /
 *to* something else.
 
 A format being in the registry doesn't mean every pair of formats converts. Foldex only offers targets that one of
-its engines can actually produce for the file you picked; `foldex formats <format>` shows them for any format.
+its engines can actually produce for the files you picked.
 
 <table>
   <tr>
